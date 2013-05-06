@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,18 +22,51 @@ namespace SaturnReleaseCountdown
     /// </summary>
     public partial class MainWindow : Window
     {
-        private DateTime _targetDate = new DateTime(2013, 7, 29);
+        private DateTime _targetDate = new DateTime(2013, 8, 5);
         private DispatcherTimer _timer;
+
+        private StarField _starField;
+        private Stopwatch _lastUpdate;
 
         private void Callback(object sender, EventArgs eventArgs)
         {
-            DaysToGo.Text = (DateTime.Now.Date - _targetDate).TotalDays.ToString();
+            TimeSpan interval = DateTime.Now - _targetDate;
+            DaysToGo.Text = (-1 * (int)(interval.TotalDays)).ToString();
+            WeeksToGo.Text = (-1* (int)(interval.TotalDays/7)).ToString();
+            SecondsToGo.Text = (-1 * (int)(interval.TotalSeconds)).ToString();
         }
 
         public MainWindow()
         {
-            _timer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, Callback, Dispatcher.CurrentDispatcher);
+            //_timer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, Callback, Dispatcher.CurrentDispatcher);
             InitializeComponent();
+
+        }
+
+        private static bool _initializedAfterScreenSizeChanged = false;
+        private void InitIfNeededAfterScreenSizeIsKnown()
+        {
+            if (_initializedAfterScreenSizeChanged) return;
+            _initializedAfterScreenSizeChanged = true;
+
+            _starField = new StarField(panelStarfield);
+            _lastUpdate = Stopwatch.StartNew();
+            CompositionTarget.Rendering += new EventHandler(CompositionTarget_Rendering);
+        }
+
+        private void CompositionTarget_Rendering(object sender, EventArgs e)
+        {
+            if (_lastUpdate.ElapsedMilliseconds < 10) return;
+            _starField.UpdateStars(_lastUpdate.ElapsedMilliseconds);
+        }
+
+
+        private void MainWindow_OnSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            Globals.ScreenWidth = ActualWidth;
+            Globals.ScreenHeight = ActualHeight;
+
+            InitIfNeededAfterScreenSizeIsKnown();            
         }
     }
 }
